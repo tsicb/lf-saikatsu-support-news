@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>採活サポート通信 List Finder ETL</title>
+  <meta name="description" content="サポートデータ・List Finderデータ・個別追加除外リストをブラウザ内で加工し、List Finder取込用CSVを生成します。" />
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --panel-2: #f8fafc;
+      --text: #172033;
+      --muted: #6f7b8d;
+      --line: #dfe6ef;
+      --accent: #315fdd;
+      --accent-2: #eaf0ff;
+      --good: #16845b;
+      --good-bg: #eaf8f2;
+      --warn: #b46b00;
+      --warn-bg: #fff5df;
+      --danger: #b73a3a;
+      --danger-bg: #fff0f0;
+      --shadow: 0 16px 42px rgba(23, 32, 51, 0.08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(49, 95, 221, 0.08), transparent 30rem),
+        var(--bg);
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 34px auto 56px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 28px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      color: var(--accent);
+      background: var(--accent-2);
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: .03em;
+    }
+
+    h1 {
+      margin: 14px 0 8px;
+      font-size: clamp(26px, 4vw, 40px);
+      line-height: 1.15;
+      letter-spacing: -.03em;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+      max-width: 760px;
+    }
+
+    .local-badge {
+      flex: 0 0 auto;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.86);
+      color: var(--muted);
+      font-size: 12px;
+      box-shadow: 0 6px 18px rgba(23,32,51,.04);
+    }
+
+    .local-badge .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--good);
+      box-shadow: 0 0 0 5px rgba(22,132,91,.10);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 19px;
+      letter-spacing: -.02em;
+    }
+
+    .section-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .drop-card {
+      position: relative;
+      min-height: 170px;
+      border: 1.5px dashed #bdc9da;
+      border-radius: 15px;
+      padding: 18px;
+      background: var(--panel-2);
+      transition: .18s ease;
+      overflow: hidden;
+    }
+
+    .drop-card:hover,
+    .drop-card.dragover {
+      border-color: var(--accent);
+      background: #f5f8ff;
+      transform: translateY(-1px);
+    }
+
+    .drop-card.ready {
+      border-style: solid;
+      border-color: rgba(22,132,91,.45);
+      background: var(--good-bg);
+    }
+
+    .drop-card input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .file-icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: var(--accent-2);
+      color: var(--accent);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .drop-card.ready .file-icon {
+      background: rgba(22,132,91,.12);
+      color: var(--good);
+    }
+
+    .drop-card h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+
+    .drop-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .file-name {
+      display: block;
+      margin-top: 13px;
+      color: var(--good);
+      font-size: 12px;
+      font-weight: 700;
+      word-break: break-all;
+      min-height: 18px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 58px;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #e8edf4;
+      color: #657184;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+
+    .step.active {
+      border-color: rgba(49,95,221,.35);
+      background: var(--accent-2);
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .step.active .step-num { background: var(--accent); color: #fff; }
+
+    .step.done {
+      border-color: rgba(22,132,91,.25);
+      background: var(--good-bg);
+      color: var(--good);
+      font-weight: 700;
+    }
+    .step.done .step-num { background: var(--good); color: #fff; }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #d8e0ec;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex: 0 0 auto;
+    }
+    .status-line.processing .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 13px;
+      background: #fff;
+    }
+    .metric .label { color: var(--muted); font-size: 11px; }
+    .metric .value { margin-top: 4px; font-size: 22px; font-weight: 800; letter-spacing: -.03em; }
+
+    .notice {
+      margin-top: 12px;
+      padding: 11px 13px;
+      border-radius: 11px;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+    .notice.warn { color: #80510c; background: var(--warn-bg); border: 1px solid #f1d391; }
+    .notice.good { color: #0f6a48; background: var(--good-bg); border: 1px solid #bce8d7; }
+    .notice.danger { color: #8d2f2f; background: var(--danger-bg); border: 1px solid #f0c3c3; }
+
+    .correction-wrap { display: none; }
+    .correction-wrap.show { display: block; }
+
+    .correction-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 12px;
+    }
+
+    .correction-count {
+      font-weight: 800;
+      color: var(--warn);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      max-height: 520px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 900px;
+      background: #fff;
+    }
+
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      font-size: 12px;
+    }
+
+    th:last-child, td:last-child { border-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f6f8fc;
+      color: #536074;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    tr.fixed td { background: #f1fbf6; }
+
+    .edit-input {
+      width: 100%;
+      min-width: 230px;
+      border: 1px solid #cfd8e5;
+      border-radius: 9px;
+      padding: 9px 10px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .edit-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49,95,221,.10); }
+    .edit-input.has-q { border-color: #d69831; background: #fffaf1; }
+
+    .row-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: var(--warn);
+      background: var(--warn-bg);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    tr.fixed .row-status { color: var(--good); background: var(--good-bg); }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 11px;
+      padding: 11px 16px;
+      font-weight: 800;
+      transition: .15s ease;
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn.primary { color: #fff; background: var(--accent); box-shadow: 0 8px 18px rgba(49,95,221,.20); }
+    .btn.secondary { color: #425066; background: #edf1f6; }
+    .btn.good { color: #fff; background: var(--good); box-shadow: 0 8px 18px rgba(22,132,91,.18); }
+
+    .complete {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px;
+      border: 1px solid #bce8d7;
+      border-radius: 13px;
+      background: var(--good-bg);
+      margin-top: 14px;
+    }
+    .complete.show { display: flex; }
+    .complete strong { display: block; color: var(--good); margin-bottom: 4px; }
+    .complete span { color: #457360; font-size: 12px; }
+
+    .error-box { display: none; }
+    .error-box.show { display: block; }
+
+    .footnote {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 900px) {
+      .hero { flex-direction: column; }
+      .file-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .local-badge { align-self: flex-start; }
+    }
+
+    @media (max-width: 560px) {
+      .wrap { width: min(100% - 20px, 1180px); margin-top: 20px; }
+      .panel { padding: 15px; border-radius: 15px; }
+      .steps, .summary-grid { grid-template-columns: 1fr; }
+      .complete { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div>
+        <span class="eyebrow">CLIENT-SIDE ETL</span>
+        <h1>採活サポート通信 List Finder ETL</h1>
+        <p class="lead">3ファイルを指定すると、ブラウザ内で自動的に照合・整形します。文字修正が不要なら、そのままList Finder用CSVを自動ダウンロードします。</p>
+      </div>
+      <div class="local-badge"><span class="dot"></span> ファイル内容は外部へ送信しません</div>
+    </header>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>1. 入力ファイル</h2>
+          <p>3ファイルが揃うと自動でETL処理を開始します。ファイルを差し替える場合は、その枠をクリックして再選択してください。</p>
+        </div>
+        <button id="resetBtn" class="btn secondary" type="button">すべてリセット</button>
+      </div>
+
+      <div class="file-grid">
+        <label class="drop-card" id="supportCard">
+          <input id="supportFile" type="file" accept=".csv,text/csv" />
+          <div class="file-icon">S</div>
+          <h3>サポートデータ CSV</h3>
+          <p>ヘッダーなし・16列のCSV。CP932として読み込みます。</p>
+          <span class="file-name" id="supportName">未選択</span>
+        </label>
+
+        <label class="drop-card" id="lfCard">
+          <input id="lfFile" type="file" accept=".csv,text/csv" />
+          <div class="file-icon">L</div>
+          <h3>List Finderデータ CSV</h3>
+          <p>List Finderから「採活サポート通信対象者」で絞り込み出力したCSV。</p>
+          <span class="file-name" id="lfName">未選択</span>
+        </label>
+
+        <label class="drop-card" id="excelCard">
+          <input id="excelFile" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+          <div class="file-icon">X</div>
+          <h3>個別追加除外リスト Excel</h3>
+          <p>「追加」シートと「除外」シートを使用します。</p>
+          <span class="file-name" id="excelName">未選択</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>2. 処理状況</h2>
+          <p>処理はサポート整形、List Finder差分判定、文字確認、除外適用の順に進みます。</p>
+        </div>
+      </div>
+
+      <div class="steps" id="steps">
+        <div class="step active" data-step="1"><span class="step-num">1</span><span>ファイル待機</span></div>
+        <div class="step" data-step="2"><span class="step-num">2</span><span>ETL・差分判定</span></div>
+        <div class="step" data-step="3"><span class="step-num">3</span><span>文字修正確認</span></div>
+        <div class="step" data-step="4"><span class="step-num">4</span><span>除外・CSV出力</span></div>
+      </div>
+
+      <div id="statusLine" class="status-line" style="margin-top:14px;">
+        <span class="spinner"></span>
+        <span id="statusText">3ファイルを選択してください。</span>
+      </div>
+
+      <div id="summaryGrid" class="summary-grid" hidden>
+        <div class="metric"><div class="label">サポート対象</div><div class="value" id="mSupport">-</div></div>
+        <div class="metric"><div class="label">継続対象</div><div class="value" id="mContinue">-</div></div>
+        <div class="metric"><div class="label">新規追加</div><div class="value" id="mNew">-</div></div>
+        <div class="metric"><div class="label">対象外化</div><div class="value" id="mRemoved">-</div></div>
+        <div class="metric"><div class="label">要文字修正</div><div class="value" id="mFix">-</div></div>
+      </div>
+
+      <div id="repairNotice" class="notice warn" hidden></div>
+      <div id="errorBox" class="notice danger error-box"></div>
+
+      <div id="completeBox" class="complete">
+        <div>
+          <strong>CSVの生成が完了しました。</strong>
+          <span id="completeText">List Finder取込用CSVをダウンロードしました。</span>
+        </div>
+        <button id="redownloadBtn" type="button" class="btn good">もう一度ダウンロード</button>
+      </div>
+    </section>
+
+    <section id="correctionPanel" class="panel correction-wrap">
+      <div class="section-head">
+        <div>
+          <h2>3. 環境依存文字の修正</h2>
+          <p>List Finderに存在しない新規対象者のうち、「企業名」または「担当者名」に ? が含まれる行だけ表示しています。? が残らないように修正してください。</p>
+        </div>
+      </div>
+
+      <div class="correction-top">
+        <div><span class="correction-count" id="correctionCount">0 / 0件 修正済み</span></div>
+        <div style="color:var(--muted);font-size:12px;">全件修正すると確定ボタンが有効になります。</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:120px;">企業ID</th>
+              <th>企業名</th>
+              <th>担当者名</th>
+              <th style="width:110px;">状態</th>
+            </tr>
+          </thead>
+          <tbody id="correctionBody"></tbody>
+        </table>
+      </div>
+
+      <div class="actions">
+        <button id="finishCorrectionBtn" class="btn primary" type="button" disabled>修正を確定してETLを続行</button>
+      </div>
+    </section>
+
+    <p class="footnote">このページはブラウザ内のみでファイルを処理します。CSVはCP932として読込・出力します。Excel読込にはSheetJS、CP932出力にはEncoding.jsを利用しています。</p>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://unpkg.com/encoding-japanese@2.3.0/encoding.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    "use strict";
+
+    const TARGET_TAG = "採活サポート通信対象者";
+    const SUPPORT_HEADERS = [
+      "企業ID", "サスケ番号", "企業名", "都道府県", "市区町村", "町域以下",
+      "担当者名", "部署", "役職", "電話", "メール",
+      "サブ担当名", "サブ担当部署", "サブ担当役職", "サブ担当電話", "サブ担当メール"
+    ];
+
+    const REQUIRED_LF_HEADERS = [
+      "(*)メールアドレス", "(*)個人タグ", "(*)企業ID", "(*)サスケ番号", "(*)企業名(個人)",
+      "(*)都道府県", "(*)市区町村以下", "(*)氏", "(*)名", "(*)部署", "(*)役職", "(*)電話1(個人)"
+    ];
+
+    const state = {
+      files: { support: null, lf: null, excel: null },
+      runToken: 0,
+      processing: false,
+      supportRecords: [],
+      newRecords: [],
+      correctionRecords: [],
+      lfHeaders: [],
+      lfRows: [],
+      excludeSet: new Set(),
+      outputBytes: null,
+      outputName: "",
+      stats: null,
+      repairedSupportRows: 0
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    const refs = {
+      supportFile: el("supportFile"), lfFile: el("lfFile"), excelFile: el("excelFile"),
+      supportCard: el("supportCard"), lfCard: el("lfCard"), excelCard: el("excelCard"),
+      supportName: el("supportName"), lfName: el("lfName"), excelName: el("excelName"),
+      statusLine: el("statusLine"), statusText: el("statusText"), summaryGrid: el("summaryGrid"),
+      repairNotice: el("repairNotice"), errorBox: el("errorBox"), correctionPanel: el("correctionPanel"),
+      correctionBody: el("correctionBody"), correctionCount: el("correctionCount"),
+      finishCorrectionBtn: el("finishCorrectionBtn"), completeBox: el("completeBox"), completeText: el("completeText"),
+      redownloadBtn: el("redownloadBtn"), resetBtn: el("resetBtn"),
+      mSupport: el("mSupport"), mContinue: el("mContinue"), mNew: el("mNew"), mRemoved: el("mRemoved"), mFix: el("mFix")
+    };
+
+    function normalizeText(v) {
+      return v == null ? "" : String(v);
+    }
+
+    function trimText(v) {
+      return normalizeText(v).trim();
+    }
+
+    function emailKey(v) {
+      return trimText(v).toLowerCase();
+    }
+
+    function normalizeHeader(v) {
+      return trimText(v).replace(/\r?\n/g, "");
+    }
+
+    function setStep(activeStep, doneThrough = activeStep - 1) {
+      document.querySelectorAll(".step").forEach(node => {
+        const n = Number(node.dataset.step);
+        node.classList.remove("active", "done");
+        if (n <= doneThrough) node.classList.add("done");
+        else if (n === activeStep) node.classList.add("active");
+      });
+    }
+
+    function setStatus(text, processing = false) {
+      refs.statusText.textContent = text;
+      refs.statusLine.classList.toggle("processing", processing);
+    }
+
+    function showError(err) {
+      console.error(err);
+      state.processing = false;
+      refs.statusLine.classList.remove("processing");
+      refs.errorBox.textContent = err instanceof Error ? err.message : String(err);
+      refs.errorBox.classList.add("show");
+      setStatus("処理を停止しました。入力ファイルまたはデータ内容を確認してください。", false);
+    }
+
+    function clearError() {
+      refs.errorBox.classList.remove("show");
+      refs.errorBox.textContent = "";
+    }
+
+    function updateFileCard(kind, file) {
+      const map = {
+        support: [refs.supportCard, refs.supportName],
+        lf: [refs.lfCard, refs.lfName],
+        excel: [refs.excelCard, refs.excelName]
+      };
+      const [card, name] = map[kind];
+      card.classList.toggle("ready", !!file);
+      name.textContent = file ? `${file.name}  (${formatBytes(file.size)})` : "未選択";
+    }
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes)) return "";
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function allFilesReady() {
+      return !!(state.files.support && state.files.lf && state.files.excel);
+    }
+
+    function prepareForRun() {
+      state.outputBytes = null;
+      state.outputName = "";
+      state.supportRecords = [];
+      state.newRecords = [];
+      state.correctionRecords = [];
+      state.lfHeaders = [];
+      state.lfRows = [];
+      state.excludeSet = new Set();
+      state.stats = null;
+      state.repairedSupportRows = 0;
+      refs.summaryGrid.hidden = true;
+      refs.repairNotice.hidden = true;
+      refs.repairNotice.textContent = "";
+      refs.correctionPanel.classList.remove("show");
+      refs.correctionBody.innerHTML = "";
+      refs.completeBox.classList.remove("show");
+      refs.finishCorrectionBtn.disabled = true;
+      clearError();
+    }
+
+    async function onFileSelected(kind, input) {
+      const file = input.files && input.files[0] ? input.files[0] : null;
+      state.files[kind] = file;
+      updateFileCard(kind, file);
+      state.runToken += 1;
+      // 旧ファイルで走っている非同期処理は runToken で無効化し、新しい処理を開始できるようにする。
+      state.processing = false;
+      prepareForRun();
+
+      if (allFilesReady()) {
+        await runETL(state.runToken);
+      } else {
+        setStep(1, 0);
+        setStatus("3ファイルを選択してください。", false);
+      }
+    }
+
+    refs.supportFile.addEventListener("change", () => onFileSelected("support", refs.supportFile));
+    refs.lfFile.addEventListener("change", () => onFileSelected("lf", refs.lfFile));
+    refs.excelFile.addEventListener("change", () => onFileSelected("excel", refs.excelFile));
+
+    [
+      [refs.supportCard, refs.supportFile],
+      [refs.lfCard, refs.lfFile],
+      [refs.excelCard, refs.excelFile]
+    ].forEach(([card]) => {
+      ["dragenter", "dragover"].forEach(type => card.addEventListener(type, e => {
+        e.preventDefault();
+        card.classList.add("dragover");
+      }));
+      ["dragleave", "drop"].forEach(type => card.addEventListener(type, () => card.classList.remove("dragover")));
+    });
+
+    refs.resetBtn.addEventListener("click", resetAll);
+    refs.redownloadBtn.addEventListener("click", () => {
+      if (state.outputBytes) triggerDownload(state.outputBytes, state.outputName);
+    });
+    refs.finishCorrectionBtn.addEventListener("click", finishCorrections);
+
+    function resetAll() {
+      state.runToken += 1;
+      state.processing = false;
+      state.files = { support: null, lf: null, excel: null };
+      refs.supportFile.value = "";
+      refs.lfFile.value = "";
+      refs.excelFile.value = "";
+      updateFileCard("support", null);
+      updateFileCard("lf", null);
+      updateFileCard("excel", null);
+      prepareForRun();
+      setStep(1, 0);
+      setStatus("3ファイルを選択してください。", false);
+    }
+
+    async function runETL(token) {
+      if (state.processing) return;
+      state.processing = true;
+      prepareForRun();
+      setStep(2, 1);
+      setStatus("ファイルを読み込み、サポートデータを整形しています…", true);
+
+      try {
+        assertLibraries();
+
+        const [supportText, lfText, excelBuffer] = await Promise.all([
+          readCp932Text(state.files.support),
+          readCp932Text(state.files.lf),
+          state.files.excel.arrayBuffer()
+        ]);
+        if (token !== state.runToken) return;
+
+        const { addRows, excludeSet } = parseExcel(excelBuffer);
+        const supportParsed = parseSupportCSV(supportText);
+        state.repairedSupportRows = supportParsed.repairedCount;
+        state.excludeSet = excludeSet;
+
+        const combinedSupport = [...addRows, ...supportParsed.rows];
+        state.supportRecords = buildSupportRecords(combinedSupport);
+
+        const lfParsed = parseListFinderCSV(lfText);
+        state.lfHeaders = lfParsed.headers;
+        state.lfRows = lfParsed.rows;
+
+        const diff = compareSupportAndLF(state.supportRecords, state.lfHeaders, state.lfRows);
+        state.newRecords = diff.newRecords;
+        state.correctionRecords = diff.newRecords.filter(r => r.company.includes("?") || r.fullName.includes("?"));
+        state.stats = {
+          support: state.supportRecords.length,
+          continued: diff.continued,
+          newCount: diff.newRecords.length,
+          removed: diff.removed,
+          fixes: state.correctionRecords.length
+        };
+
+        renderStats();
+        if (state.repairedSupportRows > 0) {
+          refs.repairNotice.hidden = false;
+          refs.repairNotice.textContent = `サポートCSVで16列を超えた ${state.repairedSupportRows} 行について、住所（町域以下）内のカンマとみなして自動補正しました。`;
+        }
+
+        if (state.correctionRecords.length > 0) {
+          state.processing = false;
+          setStep(3, 2);
+          setStatus(`新規追加 ${diff.newRecords.length} 件のうち、${state.correctionRecords.length} 件に文字修正が必要です。`, false);
+          renderCorrections();
+          refs.correctionPanel.classList.add("show");
+          refs.correctionPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
+        setStep(4, 3);
+        setStatus("文字修正は0件です。除外リストを適用してCSVを生成しています…", true);
+        await finalizeAndDownload(token);
+      } catch (err) {
+        if (token === state.runToken) showError(err);
+      } finally {
+        if (token === state.runToken && !refs.correctionPanel.classList.contains("show")) {
+          state.processing = false;
+        }
+      }
+    }
+
+    function assertLibraries() {
+      if (typeof XLSX === "undefined") throw new Error("Excel読込ライブラリの読み込みに失敗しました。インターネット接続を確認してページを再読み込みしてください。");
+      if (typeof Encoding === "undefined") throw new Error("CP932出力ライブラリの読み込みに失敗しました。インターネット接続を確認してページを再読み込みしてください。");
+    }
+
+    async function readCp932Text(file) {
+      const buffer = await file.arrayBuffer();
+      try {
+        return new TextDecoder("shift_jis", { fatal: false }).decode(buffer);
+      } catch (_) {
+        const bytes = new Uint8Array(buffer);
+        const unicode = Encoding.convert(Array.from(bytes), { to: "UNICODE", from: "SJIS" });
+        return Encoding.codeToString(unicode);
+      }
+    }
+
+    function parseExcel(buffer) {
+      const wb = XLSX.read(buffer, { type: "array", cellDates: false });
+      const addSheet = wb.Sheets["追加"];
+      const excludeSheet = wb.Sheets["除外"];
+      if (!addSheet) throw new Error("Excelに「追加」シートが見つかりません。");
+      if (!excludeSheet) throw new Error("Excelに「除外」シートが見つかりません。");
+
+      const addMatrix = XLSX.utils.sheet_to_json(addSheet, { header: 1, raw: false, defval: "" });
+      if (!addMatrix.length) throw new Error("Excelの「追加」シートが空です。");
+
+      const header = addMatrix[0].slice(0, 16).map(normalizeHeader);
+      SUPPORT_HEADERS.forEach((h, i) => {
+        if (header[i] !== h) {
+          throw new Error(`Excel「追加」シートの${columnLetter(i + 1)}列ヘッダーが想定と異なります。想定:「${h}」 / 実際:「${header[i] || "(空欄)"}」`);
+        }
+      });
+
+      const addRows = [];
+      for (let i = 1; i < addMatrix.length; i++) {
+        const raw = addMatrix[i].map(normalizeText);
+        if (raw.every(v => trimText(v) === "")) continue;
+        if (raw.length > 16 && raw.slice(16).some(v => trimText(v) !== "")) {
+          throw new Error(`Excel「追加」シート ${i + 1} 行目にP列より右の値があります。`);
+        }
+        const row = Array.from({ length: 16 }, (_, c) => normalizeText(raw[c] ?? ""));
+        addRows.push(row);
+      }
+
+      const exMatrix = XLSX.utils.sheet_to_json(excludeSheet, { header: 1, raw: false, defval: "" });
+      if (!exMatrix.length || normalizeHeader(exMatrix[0][0]) !== "除外対象メール") {
+        throw new Error("Excel「除外」シートのA1セルに「除外対象メール」ヘッダーが見つかりません。");
+      }
+      const excludeSet = new Set();
+      for (let i = 1; i < exMatrix.length; i++) {
+        const key = emailKey(exMatrix[i][0]);
+        if (key) excludeSet.add(key);
+      }
+
+      return { addRows, excludeSet };
+    }
+
+    function columnLetter(n) {
+      let s = "";
+      while (n > 0) {
+        n--;
+        s = String.fromCharCode(65 + (n % 26)) + s;
+        n = Math.floor(n / 26);
+      }
+      return s;
+    }
+
+    function parseSupportCSV(text) {
+      const parsed = parseCSV(text).filter(row => row.some(v => v !== ""));
+      const rows = [];
+      let repairedCount = 0;
+
+      parsed.forEach((row, idx) => {
+        if (row.length === 16) {
+          rows.push(row.map(normalizeText));
+          return;
+        }
+        if (row.length > 16) {
+          // サポートCSVは「町域以下」に引用符なしカンマが混ざるケースがある。
+          // 先頭5列＋末尾10列を固定し、中間を「町域以下」として再結合する。
+          const middle = row.slice(5, row.length - 10);
+          const repaired = [...row.slice(0, 5), middle.join(","), ...row.slice(-10)];
+          if (repaired.length !== 16) {
+            throw new Error(`サポートCSV ${idx + 1} 行目を16列へ補正できませんでした。現在 ${row.length} 列です。`);
+          }
+          rows.push(repaired.map(normalizeText));
+          repairedCount++;
+          return;
+        }
+        throw new Error(`サポートCSV ${idx + 1} 行目が ${row.length} 列しかありません。想定は16列です。`);
+      });
+
+      if (!rows.length) throw new Error("サポートCSVにデータ行がありません。");
+      if (rows[0].slice(0, 16).map(normalizeHeader).join("\u0001") === SUPPORT_HEADERS.join("\u0001")) {
+        throw new Error("サポートCSVの1行目がヘッダーに見えます。このアプリはヘッダーなしCSVを想定しています。");
+      }
+      return { rows, repairedCount };
+    }
+
+    function buildSupportRecords(rows16) {
+      const candidates = [];
+      rows16.forEach((r, sourceIndex) => {
+        const row = Array.from({ length: 16 }, (_, i) => normalizeText(r[i] ?? ""));
+        const common = {
+          companyId: trimText(row[0]),
+          sasukeNo: trimText(row[1]),
+          company: trimText(row[2]),
+          prefecture: trimText(row[3]),
+          city: trimText(row[4]),
+          town: trimText(row[5]),
+          sourceIndex
+        };
+
+        candidates.push({
+          ...common,
+          fullName: trimText(row[6]),
+          department: trimText(row[7]),
+          position: trimText(row[8]),
+          phone: trimText(row[9]),
+          email: trimText(row[10]),
+          personType: "main"
+        });
+        candidates.push({
+          ...common,
+          fullName: trimText(row[11]),
+          department: trimText(row[12]),
+          position: trimText(row[13]),
+          phone: trimText(row[14]),
+          email: trimText(row[15]),
+          personType: "sub"
+        });
+      });
+
+      const seen = new Set();
+      const result = [];
+      for (const record of candidates) {
+        const key = emailKey(record.email);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        result.push({ ...record, emailKey: key });
+      }
+      return result;
+    }
+
+    function parseListFinderCSV(text) {
+      const matrix = parseCSV(text);
+      while (matrix.length && matrix[matrix.length - 1].every(v => v === "")) matrix.pop();
+      if (matrix.length < 2) throw new Error("List Finder CSVにデータ行がありません。");
+
+      const headers = matrix[0].map(normalizeHeader);
+      REQUIRED_LF_HEADERS.forEach(h => {
+        if (!headers.includes(h)) throw new Error(`List Finder CSVに必須列「${h}」がありません。`);
+      });
+      if (new Set(headers).size !== headers.length) throw new Error("List Finder CSVに重複ヘッダーがあります。");
+
+      const rows = [];
+      for (let i = 1; i < matrix.length; i++) {
+        const row = matrix[i].map(normalizeText);
+        if (row.every(v => v === "")) continue;
+        if (row.length !== headers.length) {
+          throw new Error(`List Finder CSV ${i + 1} 行目の列数が ${row.length} 列です。ヘッダーは ${headers.length} 列です。`);
+        }
+        rows.push(row);
+      }
+      return { headers, rows };
+    }
+
+    function compareSupportAndLF(supportRecords, lfHeaders, lfRows) {
+      const emailIdx = lfHeaders.indexOf("(*)メールアドレス");
+      const supportMap = new Map(supportRecords.map(r => [r.emailKey, r]));
+      const lfMap = new Map();
+      lfRows.forEach((row, idx) => {
+        const key = emailKey(row[emailIdx]);
+        if (key && !lfMap.has(key)) lfMap.set(key, idx);
+      });
+
+      let continued = 0;
+      let removed = 0;
+      const newRecords = [];
+
+      supportRecords.forEach(r => {
+        if (lfMap.has(r.emailKey)) continued++;
+        else newRecords.push(r);
+      });
+      lfMap.forEach((_, key) => {
+        if (!supportMap.has(key)) removed++;
+      });
+
+      return { continued, removed, newRecords };
+    }
+
+    function renderStats() {
+      const s = state.stats;
+      refs.summaryGrid.hidden = false;
+      refs.mSupport.textContent = s.support.toLocaleString("ja-JP");
+      refs.mContinue.textContent = s.continued.toLocaleString("ja-JP");
+      refs.mNew.textContent = s.newCount.toLocaleString("ja-JP");
+      refs.mRemoved.textContent = s.removed.toLocaleString("ja-JP");
+      refs.mFix.textContent = s.fixes.toLocaleString("ja-JP");
+    }
+
+    function renderCorrections() {
+      refs.correctionBody.innerHTML = "";
+      state.correctionRecords.forEach((record, index) => {
+        const tr = document.createElement("tr");
+        tr.dataset.index = String(index);
+
+        const tdId = document.createElement("td");
+        tdId.textContent = record.companyId || "(空欄)";
+
+        const tdCompany = document.createElement("td");
+        const companyInput = document.createElement("input");
+        companyInput.className = "edit-input";
+        companyInput.value = record.company;
+        companyInput.dataset.field = "company";
+        companyInput.dataset.index = String(index);
+        tdCompany.appendChild(companyInput);
+
+        const tdName = document.createElement("td");
+        const nameInput = document.createElement("input");
+        nameInput.className = "edit-input";
+        nameInput.value = record.fullName;
+        nameInput.dataset.field = "fullName";
+        nameInput.dataset.index = String(index);
+        tdName.appendChild(nameInput);
+
+        const tdStatus = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = "row-status";
+        tdStatus.appendChild(badge);
+
+        tr.append(tdId, tdCompany, tdName, tdStatus);
+        refs.correctionBody.appendChild(tr);
+
+        [companyInput, nameInput].forEach(input => input.addEventListener("input", onCorrectionInput));
+        refreshCorrectionRow(index);
+      });
+      refreshCorrectionSummary();
+    }
+
+    function onCorrectionInput(event) {
+      const index = Number(event.target.dataset.index);
+      const field = event.target.dataset.field;
+      const value = event.target.value;
+      const record = state.correctionRecords[index];
+      record[field] = value;
+      refreshCorrectionRow(index);
+      refreshCorrectionSummary();
+    }
+
+    function correctionIsFixed(record) {
+      return !record.company.includes("?") && !record.fullName.includes("?") && trimText(record.company) !== "" && trimText(record.fullName) !== "";
+    }
+
+    function refreshCorrectionRow(index) {
+      const record = state.correctionRecords[index];
+      const tr = refs.correctionBody.querySelector(`tr[data-index="${index}"]`);
+      if (!tr) return;
+      const inputs = [...tr.querySelectorAll(".edit-input")];
+      inputs.forEach(input => input.classList.toggle("has-q", input.value.includes("?")));
+      const fixed = correctionIsFixed(record);
+      tr.classList.toggle("fixed", fixed);
+      const badge = tr.querySelector(".row-status");
+      badge.textContent = fixed ? "✓ 修正済" : "要修正";
+    }
+
+    function refreshCorrectionSummary() {
+      const fixed = state.correctionRecords.filter(correctionIsFixed).length;
+      const total = state.correctionRecords.length;
+      refs.correctionCount.textContent = `${fixed} / ${total}件 修正済み`;
+      refs.finishCorrectionBtn.disabled = fixed !== total;
+    }
+
+    async function finishCorrections() {
+      if (refs.finishCorrectionBtn.disabled) return;
+      const token = state.runToken;
+      state.processing = true;
+      refs.finishCorrectionBtn.disabled = true;
+      refs.correctionPanel.classList.remove("show");
+      setStep(4, 3);
+      setStatus("修正内容を反映し、除外リストを適用してCSVを生成しています…", true);
+      try {
+        await finalizeAndDownload(token);
+      } catch (err) {
+        showError(err);
+      } finally {
+        if (token === state.runToken) state.processing = false;
+      }
+    }
+
+    function splitName(fullName) {
+      const s = trimText(fullName);
+      const match = /[ \u3000]+/.exec(s);
+      if (!match) return { surname: "人事採用", given: "ご担当者" };
+      const surname = s.slice(0, match.index).trim();
+      const given = s.slice(match.index + match[0].length).trim();
+      return { surname, given };
+    }
+
+    function cleanTags(value) {
+      const out = [];
+      const seen = new Set();
+      normalizeText(value).split(",").forEach(part => {
+        const tag = part.trim();
+        if (!tag || seen.has(tag)) return;
+        seen.add(tag);
+        out.push(tag);
+      });
+      return out;
+    }
+
+    function removeTargetTag(value) {
+      return cleanTags(value).filter(tag => tag !== TARGET_TAG).join(",");
+    }
+
+    function ensureTargetTag(value) {
+      const raw = normalizeText(value);
+      const existing = raw.split(",").map(part => part.trim()).filter(Boolean);
+      // 既に対象タグがある継続行は、List Finder元データを可能な限りそのまま保持する。
+      if (existing.includes(TARGET_TAG)) return raw;
+      const tags = cleanTags(raw);
+      tags.push(TARGET_TAG);
+      return tags.join(",");
+    }
+
+    async function finalizeAndDownload(token) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+      if (token !== state.runToken) return;
+
+      const headers = state.lfHeaders;
+      const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
+      const supportKeySet = new Set(state.supportRecords.map(r => r.emailKey));
+
+      // 既存LF行：サポート継続なら対象タグを担保、対象外なら対象タグを削除。
+      const finalRows = state.lfRows.map(original => {
+        const row = original.slice();
+        const key = emailKey(row[idx["(*)メールアドレス"]]);
+        if (key && supportKeySet.has(key)) {
+          row[idx["(*)個人タグ"]] = ensureTargetTag(row[idx["(*)個人タグ"]]);
+        } else if (key) {
+          row[idx["(*)個人タグ"]] = removeTargetTag(row[idx["(*)個人タグ"]]);
+        }
+        return row;
+      });
+
+      // 新規サポート行をLF列構成へマッピングして末尾追加。
+      state.newRecords.forEach(record => {
+        const row = Array(headers.length).fill("");
+        const { surname, given } = splitName(record.fullName);
+        row[idx["(*)企業ID"]] = record.companyId;
+        row[idx["(*)サスケ番号"]] = record.sasukeNo;
+        row[idx["(*)企業名(個人)"]] = trimText(record.company);
+        row[idx["(*)都道府県"]] = record.prefecture;
+        row[idx["(*)市区町村以下"]] = `${record.city}${record.town}`;
+        row[idx["(*)氏"]] = surname;
+        row[idx["(*)名"]] = given;
+        row[idx["(*)部署"]] = record.department;
+        row[idx["(*)役職"]] = record.position;
+        row[idx["(*)電話1(個人)"]] = record.phone;
+        row[idx["(*)メールアドレス"]] = trimText(record.email);
+        row[idx["(*)個人タグ"]] = TARGET_TAG;
+        finalRows.push(row);
+      });
+
+      // 最終優先：除外シートにあるメールは対象タグを外す。
+      let excludedMatches = 0;
+      finalRows.forEach(row => {
+        const key = emailKey(row[idx["(*)メールアドレス"]]);
+        if (key && state.excludeSet.has(key)) {
+          const before = cleanTags(row[idx["(*)個人タグ"]]);
+          if (before.includes(TARGET_TAG)) excludedMatches++;
+          row[idx["(*)個人タグ"]] = removeTargetTag(row[idx["(*)個人タグ"]]);
+        }
+      });
+
+      const csv = serializeCSV([headers, ...finalRows]);
+      const bytes = encodeSjis(csv);
+      const outputName = makeOutputName();
+      state.outputBytes = bytes;
+      state.outputName = outputName;
+
+      setStep(4, 4);
+      setStatus("ETL処理が完了しました。", false);
+      refs.completeText.textContent = `${finalRows.length.toLocaleString("ja-JP")}件を出力しました。除外リスト適用: ${excludedMatches.toLocaleString("ja-JP")}件。`;
+      refs.completeBox.classList.add("show");
+      triggerDownload(bytes, outputName);
+    }
+
+    function makeOutputName() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      return `リストファインダー更新データ_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.csv`;
+    }
+
+    function triggerDownload(bytes, filename) {
+      const blob = new Blob([bytes], { type: "text/csv;charset=shift_jis" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function encodeSjis(text) {
+      const unicodeArray = Encoding.stringToCode(text);
+      try {
+        const sjisArray = Encoding.convert(unicodeArray, {
+          to: "SJIS",
+          from: "UNICODE",
+          type: "array",
+          fallback: "error"
+        });
+        return new Uint8Array(sjisArray);
+      } catch (err) {
+        throw new Error("最終CSVにCP932で表現できない文字が含まれています。絵文字などの特殊文字を修正してから再実行してください。" + (err && err.message ? ` (${err.message})` : ""));
+      }
+    }
+
+    function serializeCSV(matrix) {
+      return matrix.map(row => row.map(csvEscape).join(",")).join("\r\n") + "\r\n";
+    }
+
+    function csvEscape(value) {
+      const s = normalizeText(value);
+      if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    }
+
+    // RFC4180系の基本CSVパーサ。引用符内のカンマ・改行・二重引用符に対応。
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let field = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+
+        if (inQuotes) {
+          if (ch === '"') {
+            if (text[i + 1] === '"') {
+              field += '"';
+              i++;
+            } else {
+              inQuotes = false;
+            }
+          } else {
+            field += ch;
+          }
+          continue;
+        }
+
+        if (ch === '"' && field === "") {
+          inQuotes = true;
+        } else if (ch === ',') {
+          row.push(field);
+          field = "";
+        } else if (ch === '\r') {
+          if (text[i + 1] === '\n') i++;
+          row.push(field);
+          rows.push(row);
+          row = [];
+          field = "";
+        } else if (ch === '\n') {
+          row.push(field);
+          rows.push(row);
+          row = [];
+          field = "";
+        } else {
+          field += ch;
+        }
+      }
+
+      if (inQuotes) throw new Error("CSV内に閉じられていないダブルクォートがあります。");
+      if (field !== "" || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+      }
+      return rows;
+    }
+  </script>
+</body>
+</html>
