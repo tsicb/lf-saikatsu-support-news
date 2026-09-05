@@ -579,6 +579,320 @@
       line-height: 1.8;
     }
 
+
+    /* ---- Processing specification modal ---- */
+    .hero { position: relative; }
+
+    .spec-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--paper-2);
+      color: var(--accent-dark);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      box-shadow: 2px 3px 0 rgba(68, 105, 100, .06);
+      transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+
+    .spec-button:hover {
+      background: var(--accent-faint);
+      border-color: var(--line-dark);
+      transform: translateY(-1px);
+    }
+
+    .spec-button .spec-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--line-dark);
+      color: var(--accent-dark);
+      font-size: 11px;
+      line-height: 1;
+      background: var(--paper);
+    }
+
+    .spec-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 20px;
+      background: rgba(35, 50, 46, .46);
+      backdrop-filter: blur(2px);
+    }
+
+    .spec-modal.show { display: flex; }
+
+    .spec-dialog {
+      width: min(1000px, 94vw);
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line-dark);
+      border-radius: 5px;
+      box-shadow:
+        10px 13px 0 rgba(43, 66, 60, .10),
+        0 26px 70px rgba(30, 45, 40, .28);
+    }
+
+    .spec-modal-head {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 22px;
+      padding: 24px 27px 21px;
+      border-bottom: 1px solid var(--line-soft);
+      background:
+        linear-gradient(rgba(95,133,129,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(95,133,129,.025) 1px, transparent 1px),
+        var(--paper);
+      background-size: 12px 12px;
+    }
+
+    .spec-modal-head .section-kicker { margin-bottom: 5px; }
+    .spec-modal-head h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.5;
+      letter-spacing: .035em;
+    }
+    .spec-modal-head p {
+      margin: 7px 0 0;
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .spec-close {
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1;
+      border-radius: 3px;
+    }
+    .spec-close:hover { background: var(--accent-faint); border-color: var(--line-dark); }
+
+    .spec-modal-body {
+      overflow-y: auto;
+      padding: 25px 27px 30px;
+      scrollbar-gutter: stable;
+    }
+
+    .spec-flow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0;
+      margin-bottom: 27px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+    }
+
+    .spec-flow-item {
+      position: relative;
+      min-height: 76px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 12px 8px;
+      text-align: center;
+      border-right: 1px solid var(--line-soft);
+    }
+    .spec-flow-item:last-child { border-right: 0; }
+    .spec-flow-item:not(:last-child)::after {
+      content: "›";
+      position: absolute;
+      z-index: 2;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: grid;
+      place-items: center;
+      width: 12px;
+      height: 22px;
+      background: var(--paper);
+      color: var(--line-dark);
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .spec-flow-num {
+      color: var(--accent-dark);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .10em;
+    }
+    .spec-flow-label {
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 800;
+    }
+
+    .spec-section {
+      padding: 23px 0 24px;
+      border-top: 1px dashed var(--line);
+    }
+    .spec-section:first-of-type { border-top: 0; padding-top: 0; }
+
+    .spec-title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 11px;
+      margin-bottom: 12px;
+    }
+    .spec-no {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+    .spec-section h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.6;
+      letter-spacing: .025em;
+    }
+    .spec-section p, .spec-section li {
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.9;
+    }
+    .spec-section p { margin: 8px 0 0; }
+    .spec-section ul { margin: 9px 0 0; padding-left: 1.4em; }
+
+    .spec-rule-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 11px;
+      margin-top: 15px;
+    }
+    .spec-rule-card {
+      padding: 15px 14px 14px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+    }
+    .spec-rule-card strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--accent-dark);
+      font-size: 12px;
+    }
+    .spec-rule-card .formula {
+      display: block;
+      margin-bottom: 7px;
+      padding: 5px 7px;
+      background: var(--accent-faint);
+      color: var(--sub);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .03em;
+    }
+    .spec-rule-card p { margin: 0; font-size: 11px; line-height: 1.75; color: var(--sub); }
+
+    .spec-table-wrap {
+      overflow-x: auto;
+      margin-top: 13px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+      font-size: 11px;
+    }
+    .spec-table th,
+    .spec-table td {
+      padding: 9px 12px;
+      border-right: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+    .spec-table th {
+      background: var(--panel-soft);
+      color: var(--accent-dark);
+      font-weight: 800;
+    }
+    .spec-table tr:last-child td { border-bottom: 0; }
+    .spec-table th:last-child, .spec-table td:last-child { border-right: 0; }
+
+    .spec-callout {
+      margin-top: 13px;
+      padding: 13px 14px;
+      border-left: 3px solid var(--line-dark);
+      background: var(--accent-faint);
+      color: var(--sub);
+      font-size: 11px;
+      line-height: 1.8;
+    }
+    .spec-callout.warn {
+      border-left-color: var(--warn);
+      background: var(--warn-bg);
+    }
+    .spec-label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
+      margin-right: 6px;
+      padding: 2px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--accent-dark);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      vertical-align: 1px;
+    }
+    .spec-label.tech {
+      color: #666f6b;
+      background: #f3f4f3;
+    }
+
+    .spec-meta {
+      margin-top: 24px;
+      padding-top: 17px;
+      border-top: 2px dashed var(--line-soft);
+      color: var(--sub);
+      font-size: 10px;
+      line-height: 1.8;
+      text-align: right;
+    }
+
+    body.modal-open { overflow: hidden; }
+
     @media (max-width: 900px) {
       body { padding: 24px 14px 40px; }
       .wrap { padding: 34px 26px 28px; }
@@ -606,12 +920,26 @@
       .metric:last-child { border-bottom: 0; }
       .complete, .correction-top { flex-direction: column; align-items: stretch; }
       .correction-wrap { padding: 23px 15px 18px; }
+      .spec-button { position: static; margin: 0 0 16px auto; }
+      .spec-modal { padding: 10px; }
+      .spec-dialog { width: 100%; max-height: 94vh; }
+      .spec-modal-head { padding: 18px 17px 16px; }
+      .spec-modal-body { padding: 18px 17px 22px; }
+      .spec-flow { grid-template-columns: 1fr; }
+      .spec-flow-item { min-height: 52px; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+      .spec-flow-item:last-child { border-bottom: 0; }
+      .spec-flow-item:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -12px; transform: translateX(-50%); width: 22px; height: 22px; }
+      .spec-rule-grid { grid-template-columns: 1fr; }
+      .spec-modal-head h2 { font-size: 19px; }
     }
   </style>
 </head>
 <body>
   <main class="wrap">
     <header class="hero">
+      <button id="specOpenBtn" class="spec-button" type="button" aria-haspopup="dialog" aria-controls="specModal">
+        <span class="spec-icon" aria-hidden="true">▤</span> 処理仕様
+      </button>
       <span class="eyebrow">LIST FINDER TOOL SERIES / SUPPORT SYNC</span>
       <h1>採活サポート通信 更新CSV作成ツール</h1>
       <p class="lead">サポートデータ・List Finderデータ・個別追加除外リストを重ね合わせ、対象者の継続・追加・除外をブラウザ内で自動整理します。環境依存文字の確認が必要な場合だけ、途中で修正画面を表示します。</p>
@@ -732,6 +1060,131 @@
     <p class="footnote">※ファイル内容は外部へ送信されません。CSVはCP932として読込・出力します。Excel読込にはSheetJS、CP932変換にはEncoding.jsを利用しています。</p>
   </main>
 
+
+  <div id="specModal" class="spec-modal" role="dialog" aria-modal="true" aria-labelledby="specModalTitle" aria-hidden="true">
+    <div class="spec-dialog" role="document">
+      <div class="spec-modal-head">
+        <div>
+          <span class="section-kicker">PROCESS SPECIFICATION</span>
+          <h2 id="specModalTitle">処理仕様・データ加工ガイド</h2>
+          <p>このアプリが3つの入力ファイルをどの順序・ルールで加工し、List Finder取込用CSVを作るかを説明します。</p>
+        </div>
+        <button id="specCloseBtn" class="spec-close" type="button" aria-label="処理仕様を閉じる">×</button>
+      </div>
+
+      <div class="spec-modal-body">
+        <div class="spec-flow" aria-label="ETL処理フロー">
+          <div class="spec-flow-item"><span class="spec-flow-num">01</span><span class="spec-flow-label">3ファイル<br>読込</span></div>
+          <div class="spec-flow-item"><span class="spec-flow-num">02</span><span class="spec-flow-label">追加＋サポート<br>整形</span></div>
+          <div class="spec-flow-item"><span class="spec-flow-num">03</span><span class="spec-flow-label">メール<br>照合</span></div>
+          <div class="spec-flow-item"><span class="spec-flow-num">04</span><span class="spec-flow-label">環境依存文字<br>確認</span></div>
+          <div class="spec-flow-item"><span class="spec-flow-num">05</span><span class="spec-flow-label">List Finder<br>更新</span></div>
+          <div class="spec-flow-item"><span class="spec-flow-num">06</span><span class="spec-flow-label">個別除外<br>適用</span></div>
+          <div class="spec-flow-item"><span class="spec-flow-num">07</span><span class="spec-flow-label">CP932 CSV<br>出力</span></div>
+        </div>
+
+        <section class="spec-section">
+          <div class="spec-title-row"><span class="spec-no">01</span><h3>入力ファイルと役割</h3></div>
+          <p><span class="spec-label">業務ルール</span>3ファイルがすべて揃った時点でETL処理を自動開始します。</p>
+          <div class="spec-table-wrap">
+            <table class="spec-table">
+              <thead><tr><th>入力</th><th>利用内容</th><th>前提</th></tr></thead>
+              <tbody>
+                <tr><td>サポートデータ CSV</td><td>現在の採活サポート通信対象者候補となる企業・担当者情報</td><td>ヘッダーなし、A～P相当の16列</td></tr>
+                <tr><td>List Finderデータ CSV</td><td>現在List Finderに登録されている対象者を基準データとして利用</td><td>通常は「採活サポート通信対象者」タグで絞り込んだCSV</td></tr>
+                <tr><td>個別追加除外リスト Excel</td><td>「追加」シートで個別追加、「除外」シートで最終除外</td><td>「追加」「除外」の2シートを使用</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="spec-callout"><span class="spec-label tech">技術仕様</span>サポートCSVとList Finder CSVはCP932（Shift_JIS系）として読み込みます。処理はブラウザ内で行い、入力ファイルを外部へ送信しません。</div>
+        </section>
+
+        <section class="spec-section">
+          <div class="spec-title-row"><span class="spec-no">02</span><h3>「追加」＋サポートデータの統合と縦持ち化</h3></div>
+          <p>Excel「追加」シートのデータを先に置き、その下へサポートCSVを結合します。その後、主担当とサブ担当をそれぞれ1行として扱う縦持ちデータへ変換します。</p>
+          <ul>
+            <li>共通列：企業ID、サスケ番号、企業名、都道府県、市区町村、町域以下</li>
+            <li>主担当：担当者名、部署、役職、電話、メール</li>
+            <li>サブ担当：サブ担当名、サブ担当部署、サブ担当役職、サブ担当電話、サブ担当メール</li>
+            <li>メールが空欄の行は除外します。</li>
+            <li>メール重複は、上にある最初の1行だけを残します。したがって「追加」シート側のデータがサポートCSVより優先されます。</li>
+          </ul>
+          <div class="spec-callout warn"><span class="spec-label">既知データ補正</span>サポートCSVが16列を超える場合、町域以下に引用符なしカンマが混入した既知パターンとして、先頭5列と末尾10列を固定し、中間部分を「町域以下」として再結合します。補正できない列構造はエラーで停止します。</div>
+        </section>
+
+        <section class="spec-section">
+          <div class="spec-title-row"><span class="spec-no">03</span><h3>List Finderとのメール照合</h3></div>
+          <p>サポート側の「メール」とList Finder側の「(*)メールアドレス」を照合します。比較時だけ前後空白を除去し、小文字化したメールを照合キーにします。</p>
+          <div class="spec-rule-grid">
+            <div class="spec-rule-card"><strong>継続対象</strong><span class="formula">SUPPORT ○ / LF ○</span><p>既存List Finder行を保持し、「採活サポート通信対象者」タグが存在する状態を担保します。</p></div>
+            <div class="spec-rule-card"><strong>対象外化</strong><span class="formula">SUPPORT × / LF ○</span><p>既存行自体は残し、「採活サポート通信対象者」タグだけを削除します。</p></div>
+            <div class="spec-rule-card"><strong>新規追加</strong><span class="formula">SUPPORT ○ / LF ×</span><p>サポート側の該当行をList Finderの列構成へ変換し、最終データの末尾へ追加します。</p></div>
+          </div>
+          <div class="spec-callout"><span class="spec-label tech">照合仕様</span>比較用キーのみ正規化します。既存List Finder行のメールアドレス表記そのものは変更しません。</div>
+        </section>
+
+        <section class="spec-section">
+          <div class="spec-title-row"><span class="spec-no">04</span><h3>新規対象者の環境依存文字チェック</h3></div>
+          <p>List Finderに存在しない新規対象者だけを対象に、「企業名」「担当者名」に <strong>?</strong> が含まれていないか確認します。</p>
+          <ul>
+            <li>該当0件：手動操作なしで次工程へ進みます。</li>
+            <li>該当あり：企業ID・企業名・担当者名を修正画面へ表示し、自動処理を一時停止します。</li>
+            <li>対象行から ? がなくなるまで修正し、全件完了後に「修正を確定してETLを続行」を押すと処理を再開します。</li>
+          </ul>
+          <div class="spec-callout warn">氏・名の分割は、この文字修正が完了した後に行います。</div>
+        </section>
+
+        <section class="spec-section">
+          <div class="spec-title-row"><span class="spec-no">05</span><h3>住所・氏名加工とList Finder列への変換</h3></div>
+          <p><strong>住所：</strong>「市区町村」＋「町域以下」を連結し、List Finderの「(*)市区町村以下」へ入れます。</p>
+          <p><strong>氏名：</strong>担当者名に含まれる最初の半角／全角スペース群を区切りとして「(*)氏」「(*)名」へ2分割します。2回目以降のスペースは名側の文字列として保持します。スペースが1つもない場合は「(*)氏＝人事採用」「(*)名＝ご担当者」を設定します。</p>
+          <div class="spec-table-wrap">
+            <table class="spec-table">
+              <thead><tr><th>サポート＋追加データ</th><th>List Finder出力列</th></tr></thead>
+              <tbody>
+                <tr><td>企業ID</td><td>(*)企業ID</td></tr>
+                <tr><td>サスケ番号</td><td>(*)サスケ番号</td></tr>
+                <tr><td>企業名</td><td>(*)企業名(個人)</td></tr>
+                <tr><td>都道府県</td><td>(*)都道府県</td></tr>
+                <tr><td>市区町村＋町域以下</td><td>(*)市区町村以下</td></tr>
+                <tr><td>担当者名 → 氏</td><td>(*)氏</td></tr>
+                <tr><td>担当者名 → 名</td><td>(*)名</td></tr>
+                <tr><td>部署</td><td>(*)部署</td></tr>
+                <tr><td>役職</td><td>(*)役職</td></tr>
+                <tr><td>電話</td><td>(*)電話1(個人)</td></tr>
+                <tr><td>メール</td><td>(*)メールアドレス</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="spec-callout"><span class="spec-label">新規行</span>「(*)個人タグ」には <strong>採活サポート通信対象者</strong> を自動設定します。List Finderに存在するその他の列は空欄で追加します。</div>
+        </section>
+
+        <section class="spec-section">
+          <div class="spec-title-row"><span class="spec-no">06</span><h3>タグ更新と「除外」シートの最終適用</h3></div>
+          <p>対象外化した既存行では「採活サポート通信対象者」だけを削除します。タグ列はカンマ区切りの配列として扱い、空要素や重複を整理しながら対象タグだけを完全一致で除去します。</p>
+          <p>その後、Excel「除外」シートの「除外対象メール」と最終データの「(*)メールアドレス」を照合し、一致した行からも同タグを削除します。</p>
+          <div class="spec-callout warn"><span class="spec-label">優先ルール</span>「除外」シートは最後に適用します。サポート側に存在する新規・継続対象者であっても、除外シートにメールがあれば最終的に対象タグを外します。</div>
+        </section>
+
+        <section class="spec-section">
+          <div class="spec-title-row"><span class="spec-no">07</span><h3>最終CSVの生成・ダウンロード</h3></div>
+          <ul>
+            <li>列構成は入力したList Finder CSVのヘッダー構成をそのまま維持します。</li>
+            <li>既存List Finder行を基礎に、新規対象者を末尾へ追加します。</li>
+            <li>出力文字コードはCP932です。</li>
+            <li>CP932で表現できない文字が残っている場合は、安全のため出力を停止します。</li>
+            <li>文字修正が0件なら自動でダウンロードまで進み、修正ありの場合は修正確定後にダウンロードします。</li>
+          </ul>
+        </section>
+
+        <div class="spec-meta">
+          処理仕様バージョン：1.0 ／ 最終更新：2026-09-05<br>
+          ※このガイドは現在のアプリ実装ロジックに対応しています。処理ロジックを変更した場合は、本ガイドも同時に更新してください。
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://unpkg.com/encoding-japanese@2.3.0/encoding.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
@@ -776,8 +1229,36 @@
       correctionBody: el("correctionBody"), correctionCount: el("correctionCount"),
       finishCorrectionBtn: el("finishCorrectionBtn"), completeBox: el("completeBox"), completeText: el("completeText"),
       redownloadBtn: el("redownloadBtn"), resetBtn: el("resetBtn"),
+      specOpenBtn: el("specOpenBtn"), specModal: el("specModal"), specCloseBtn: el("specCloseBtn"),
       mSupport: el("mSupport"), mContinue: el("mContinue"), mNew: el("mNew"), mRemoved: el("mRemoved"), mFix: el("mFix")
     };
+
+
+    let lastSpecFocus = null;
+
+    function openSpecModal() {
+      lastSpecFocus = document.activeElement;
+      refs.specModal.classList.add("show");
+      refs.specModal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("modal-open");
+      refs.specCloseBtn.focus();
+    }
+
+    function closeSpecModal() {
+      refs.specModal.classList.remove("show");
+      refs.specModal.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modal-open");
+      if (lastSpecFocus && typeof lastSpecFocus.focus === "function") lastSpecFocus.focus();
+    }
+
+    refs.specOpenBtn.addEventListener("click", openSpecModal);
+    refs.specCloseBtn.addEventListener("click", closeSpecModal);
+    refs.specModal.addEventListener("click", event => {
+      if (event.target === refs.specModal) closeSpecModal();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && refs.specModal.classList.contains("show")) closeSpecModal();
+    });
 
     function normalizeText(v) {
       return v == null ? "" : String(v);
