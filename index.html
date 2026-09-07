@@ -258,6 +258,81 @@
 
     .drop-card.ready .file-name { color: var(--good); }
 
+    .fixed-path-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 12px;
+    }
+
+    .fixed-path-box {
+      grid-column: 3;
+      padding: 12px 13px 11px;
+      border: 1px solid var(--line-soft);
+      background: #f7faf8;
+    }
+
+    .fixed-path-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+    }
+
+    .fixed-path-label {
+      color: var(--accent-dark);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+
+    .path-copy-btn {
+      flex: 0 0 auto;
+      min-height: 30px;
+      padding: 5px 10px;
+      border: 1px solid #9eb7b0;
+      background: var(--paper);
+      color: var(--accent-dark);
+      font: inherit;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+    .path-copy-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .path-copy-btn.copied {
+      border-color: #91ad9f;
+      background: var(--good-bg);
+      color: var(--good);
+    }
+
+    .fixed-path-value {
+      display: block;
+      max-width: 100%;
+      padding: 7px 8px;
+      border: 1px solid #d8e2de;
+      background: #fff;
+      color: #52615b;
+      font-family: Consolas, "SFMono-Regular", "Yu Gothic", monospace;
+      font-size: 9px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+      user-select: text;
+    }
+
+    .fixed-path-note {
+      margin: 6px 0 0;
+      color: var(--sub);
+      font-size: 9px;
+      line-height: 1.6;
+    }
+
     .steps {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -930,6 +1005,8 @@
       .spec-flow-item:last-child { border-bottom: 0; }
       .spec-flow-item:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -12px; transform: translateX(-50%); width: 22px; height: 22px; }
       .spec-rule-grid { grid-template-columns: 1fr; }
+      .fixed-path-grid { grid-template-columns: 1fr; }
+      .fixed-path-box { grid-column: 1; }
       .spec-modal-head h2 { font-size: 19px; }
     }
   </style>
@@ -980,6 +1057,17 @@
           <p>「追加」シートと「除外」シートを読み込み、個別ルールを最終結果へ反映します。</p>
           <span class="file-name" id="excelName">未選択</span>
         </label>
+      </div>
+
+      <div class="fixed-path-grid" aria-label="個別追加除外リストの固定保存場所">
+        <div class="fixed-path-box">
+          <div class="fixed-path-head">
+            <span class="fixed-path-label">個別追加除外リストの固定保存場所</span>
+            <button id="copyExcelPathBtn" class="path-copy-btn" type="button">パスをコピー</button>
+          </div>
+          <code id="fixedExcelPath" class="fixed-path-value"></code>
+          <p class="fixed-path-note">ファイル選択画面で貼り付けて、固定ファイルへすばやく移動できます。</p>
+        </div>
       </div>
     </section>
 
@@ -1096,6 +1184,7 @@
               </tbody>
             </table>
           </div>
+          <div class="spec-callout"><span class="spec-label">運用補助</span>個別追加除外リストは固定保存場所から使用する運用を想定しています。画面の入力欄付近にある「パスをコピー」ボタンから、次のフルパスをコピーできます。<br><code id="specFixedExcelPath" style="display:block;margin-top:7px;overflow-wrap:anywhere;"> </code></div>
           <div class="spec-callout"><span class="spec-label tech">技術仕様</span>サポートCSVとList Finder CSVはCP932（Shift_JIS系）として読み込みます。最終CSVは、修正した環境依存文字を保持するためUTF-8 BOM付きで出力します。処理はブラウザ内で行い、入力ファイルを外部へ送信しません。</div>
         </section>
 
@@ -1179,7 +1268,7 @@
         </section>
 
         <div class="spec-meta">
-          処理仕様バージョン：1.1 ／ 最終更新：2026-09-07<br>
+          処理仕様バージョン：1.2 ／ 最終更新：2026-09-07<br>
           ※このガイドは現在のアプリ実装ロジックに対応しています。処理ロジックを変更した場合は、本ガイドも同時に更新してください。
         </div>
       </div>
@@ -1193,6 +1282,7 @@
 
     const TARGET_TAG = "採活サポート通信対象者";
     const DUMMY_TAG = "システム更新用ダミー";
+    const ADD_EXCLUDE_FILE_PATH = "K:\\天市事業\\public\\■ListFinder運用関連■\\ListFinder採活サポート通信対象者更新用\\個別追加除外リスト.xlsx";
     const SUPPORT_HEADERS = [
       "企業ID", "サスケ番号", "企業名", "都道府県", "市区町村", "町域以下",
       "担当者名", "部署", "役職", "電話", "メール",
@@ -1232,11 +1322,53 @@
       finishCorrectionBtn: el("finishCorrectionBtn"), completeBox: el("completeBox"), completeText: el("completeText"),
       redownloadBtn: el("redownloadBtn"), resetBtn: el("resetBtn"),
       specOpenBtn: el("specOpenBtn"), specModal: el("specModal"), specCloseBtn: el("specCloseBtn"),
+      copyExcelPathBtn: el("copyExcelPathBtn"), fixedExcelPath: el("fixedExcelPath"), specFixedExcelPath: el("specFixedExcelPath"),
       mSupport: el("mSupport"), mContinue: el("mContinue"), mNew: el("mNew"), mRemoved: el("mRemoved"), mFix: el("mFix")
     };
 
 
     let lastSpecFocus = null;
+    let pathCopyTimer = null;
+
+    refs.fixedExcelPath.textContent = ADD_EXCLUDE_FILE_PATH;
+    refs.specFixedExcelPath.textContent = ADD_EXCLUDE_FILE_PATH;
+
+    async function copyExcelFilePath() {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(ADD_EXCLUDE_FILE_PATH);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = ADD_EXCLUDE_FILE_PATH;
+          textarea.setAttribute("readonly", "");
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(textarea);
+          if (!ok) throw new Error("clipboard copy failed");
+        }
+
+        refs.copyExcelPathBtn.textContent = "✓ コピーしました";
+        refs.copyExcelPathBtn.classList.add("copied");
+        clearTimeout(pathCopyTimer);
+        pathCopyTimer = setTimeout(() => {
+          refs.copyExcelPathBtn.textContent = "パスをコピー";
+          refs.copyExcelPathBtn.classList.remove("copied");
+        }, 1800);
+      } catch (err) {
+        console.error(err);
+        refs.copyExcelPathBtn.textContent = "コピーできませんでした";
+        refs.copyExcelPathBtn.classList.remove("copied");
+        clearTimeout(pathCopyTimer);
+        pathCopyTimer = setTimeout(() => {
+          refs.copyExcelPathBtn.textContent = "パスをコピー";
+        }, 2200);
+      }
+    }
+
+    refs.copyExcelPathBtn.addEventListener("click", copyExcelFilePath);
 
     function openSpecModal() {
       lastSpecFocus = document.activeElement;
