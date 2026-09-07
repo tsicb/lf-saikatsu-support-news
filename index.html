@@ -1057,7 +1057,7 @@
       </div>
     </section>
 
-    <p class="footnote">※ファイル内容は外部へ送信されません。CSVはCP932として読込・出力します。Excel読込にはSheetJS、CP932変換にはEncoding.jsを利用しています。</p>
+    <p class="footnote">※ファイル内容は外部へ送信されません。入力CSVはCP932として読み込み、最終CSVは環境依存文字を保持できるUTF-8 BOM付きで出力します。Excel読込にはSheetJS、CP932読込補助にはEncoding.jsを利用しています。</p>
   </main>
 
 
@@ -1080,7 +1080,7 @@
           <div class="spec-flow-item"><span class="spec-flow-num">04</span><span class="spec-flow-label">環境依存文字<br>確認</span></div>
           <div class="spec-flow-item"><span class="spec-flow-num">05</span><span class="spec-flow-label">List Finder<br>更新</span></div>
           <div class="spec-flow-item"><span class="spec-flow-num">06</span><span class="spec-flow-label">個別除外<br>適用</span></div>
-          <div class="spec-flow-item"><span class="spec-flow-num">07</span><span class="spec-flow-label">CP932 CSV<br>出力</span></div>
+          <div class="spec-flow-item"><span class="spec-flow-num">07</span><span class="spec-flow-label">UTF-8 BOM CSV<br>出力</span></div>
         </div>
 
         <section class="spec-section">
@@ -1096,7 +1096,7 @@
               </tbody>
             </table>
           </div>
-          <div class="spec-callout"><span class="spec-label tech">技術仕様</span>サポートCSVとList Finder CSVはCP932（Shift_JIS系）として読み込みます。処理はブラウザ内で行い、入力ファイルを外部へ送信しません。</div>
+          <div class="spec-callout"><span class="spec-label tech">技術仕様</span>サポートCSVとList Finder CSVはCP932（Shift_JIS系）として読み込みます。最終CSVは、修正した環境依存文字を保持するためUTF-8 BOM付きで出力します。処理はブラウザ内で行い、入力ファイルを外部へ送信しません。</div>
         </section>
 
         <section class="spec-section">
@@ -1171,8 +1171,8 @@
           <ul>
             <li>列構成は入力したList Finder CSVのヘッダー構成をそのまま維持します。</li>
             <li>既存List Finder行を基礎に、新規対象者を末尾へ追加します。</li>
-            <li>出力文字コードはCP932です。</li>
-            <li>CP932で表現できない文字が残っている場合は、安全のため出力を停止します。</li>
+            <li>入力CSVはCP932として読み込みます。</li>
+            <li>最終CSVはUTF-8 BOM付きで出力します。これにより、手動修正したCP932外の環境依存文字も保持できます。</li>
             <li>文字修正が0件なら自動でダウンロードまで進み、修正ありの場合は修正確定後にダウンロードします。</li>
           </ul>
         </section>
@@ -1347,10 +1347,27 @@
       clearError();
     }
 
-    async function onFileSelected(kind, input) {
-      const file = input.files && input.files[0] ? input.files[0] : null;
-      state.files[kind] = file;
-      updateFileCard(kind, file);
+    function validateDroppedFile(kind, file) {
+      if (!file) return;
+      const name = file.name.toLowerCase();
+      if ((kind === "support" || kind === "lf") && !name.endsWith(".csv")) {
+        throw new Error(`${kind === "support" ? "サポートデータ" : "List Finderデータ"}にはCSVファイルを指定してください。`);
+      }
+      if (kind === "excel" && !(name.endsWith(".xlsx") || name.endsWith(".xls"))) {
+        throw new Error("個別追加除外リストにはExcelファイル（.xlsx / .xls）を指定してください。");
+      }
+    }
+
+    async function handleSelectedFile(kind, file) {
+      try {
+        validateDroppedFile(kind, file);
+      } catch (err) {
+        showError(err);
+        return;
+      }
+
+      state.files[kind] = file || null;
+      updateFileCard(kind, file || null);
       state.runToken += 1;
       // 旧ファイルで走っている非同期処理は runToken で無効化し、新しい処理を開始できるようにする。
       state.processing = false;
@@ -1364,20 +1381,63 @@
       }
     }
 
+    async function onFileSelected(kind, input) {
+      const file = input.files && input.files[0] ? input.files[0] : null;
+      await handleSelectedFile(kind, file);
+    }
+
     refs.supportFile.addEventListener("change", () => onFileSelected("support", refs.supportFile));
     refs.lfFile.addEventListener("change", () => onFileSelected("lf", refs.lfFile));
     refs.excelFile.addEventListener("change", () => onFileSelected("excel", refs.excelFile));
 
+    // ブラウザ既定の「ドロップしたファイルを開く／保存する」動作を抑止する。
+    // カード外へ誤って落とした場合もページ遷移・ダウンロードを起こさない。
+    ["dragover", "drop"].forEach(type => {
+      document.addEventListener(type, e => {
+        if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files")) {
+          e.preventDefault();
+        }
+      }, false);
+    });
+
     [
-      [refs.supportCard, refs.supportFile],
-      [refs.lfCard, refs.lfFile],
-      [refs.excelCard, refs.excelFile]
-    ].forEach(([card]) => {
+      ["support", refs.supportCard, refs.supportFile],
+      ["lf", refs.lfCard, refs.lfFile],
+      ["excel", refs.excelCard, refs.excelFile]
+    ].forEach(([kind, card, input]) => {
       ["dragenter", "dragover"].forEach(type => card.addEventListener(type, e => {
         e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
         card.classList.add("dragover");
       }));
-      ["dragleave", "drop"].forEach(type => card.addEventListener(type, () => card.classList.remove("dragover")));
+
+      card.addEventListener("dragleave", e => {
+        e.preventDefault();
+        card.classList.remove("dragover");
+      });
+
+      card.addEventListener("drop", async e => {
+        e.preventDefault();
+        e.stopPropagation();
+        card.classList.remove("dragover");
+
+        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
+          ? e.dataTransfer.files[0]
+          : null;
+        if (!file) return;
+
+        // 対応ブラウザではinput.filesにも反映し、クリック選択時との状態差をなくす。
+        try {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+        } catch (_) {
+          // input.filesが書き換え不可でもstate側で保持するため処理には影響しない。
+        }
+
+        await handleSelectedFile(kind, file);
+      });
     });
 
     refs.resetBtn.addEventListener("click", resetAll);
@@ -1471,7 +1531,7 @@
 
     function assertLibraries() {
       if (typeof XLSX === "undefined") throw new Error("Excel読込ライブラリの読み込みに失敗しました。インターネット接続を確認してページを再読み込みしてください。");
-      if (typeof Encoding === "undefined") throw new Error("CP932出力ライブラリの読み込みに失敗しました。インターネット接続を確認してページを再読み込みしてください。");
+      if (typeof Encoding === "undefined") throw new Error("CP932読込補助ライブラリの読み込みに失敗しました。インターネット接続を確認してページを再読み込みしてください。");
     }
 
     async function readCp932Text(file) {
@@ -1845,7 +1905,7 @@
       });
 
       const csv = serializeCSV([headers, ...finalRows]);
-      const bytes = encodeSjis(csv);
+      const bytes = encodeUtf8Bom(csv);
       const outputName = makeOutputName();
       state.outputBytes = bytes;
       state.outputName = outputName;
@@ -1864,7 +1924,7 @@
     }
 
     function triggerDownload(bytes, filename) {
-      const blob = new Blob([bytes], { type: "text/csv;charset=shift_jis" });
+      const blob = new Blob([bytes], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -1875,19 +1935,13 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    function encodeSjis(text) {
-      const unicodeArray = Encoding.stringToCode(text);
-      try {
-        const sjisArray = Encoding.convert(unicodeArray, {
-          to: "SJIS",
-          from: "UNICODE",
-          type: "array",
-          fallback: "error"
-        });
-        return new Uint8Array(sjisArray);
-      } catch (err) {
-        throw new Error("最終CSVにCP932で表現できない文字が含まれています。絵文字などの特殊文字を修正してから再実行してください。" + (err && err.message ? ` (${err.message})` : ""));
-      }
+    function encodeUtf8Bom(text) {
+      const body = new TextEncoder().encode(text);
+      const out = new Uint8Array(body.length + 3);
+      // UTF-8 BOM: Excel / List Finderなどで日本語CSVとして判定しやすくする。
+      out.set([0xEF, 0xBB, 0xBF], 0);
+      out.set(body, 3);
+      return out;
     }
 
     function serializeCSV(matrix) {
