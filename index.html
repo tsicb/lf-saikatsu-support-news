@@ -1163,7 +1163,8 @@
           <div class="spec-title-row"><span class="spec-no">06</span><h3>タグ更新と「除外」シートの最終適用</h3></div>
           <p>対象外化した既存行では「採活サポート通信対象者」だけを削除します。タグ列はカンマ区切りの配列として扱い、空要素や重複を整理しながら対象タグだけを完全一致で除去します。</p>
           <p>その後、Excel「除外」シートの「除外対象メール」と最終データの「(*)メールアドレス」を照合し、一致した行からも同タグを削除します。</p>
-          <div class="spec-callout warn"><span class="spec-label">優先ルール</span>「除外」シートは最後に適用します。サポート側に存在する新規・継続対象者であっても、除外シートにメールがあれば最終的に対象タグを外します。</div>
+          <p>すべてのタグ更新・除外処理が終わった時点で「(*)個人タグ」が空白になる行には、固定値 <strong>システム更新用ダミー</strong> を設定します。List Finderでは空白セルをアップロードしても既存タグが保持されるため、空白を明示的に上書きするためのシステム用タグです。ほかのタグが1つでも残っている行には付与しません。</p>
+          <div class="spec-callout warn"><span class="spec-label">優先ルール</span>「除外」シートは最後に適用します。サポート側に存在する新規・継続対象者であっても、除外シートにメールがあれば最終的に対象タグを外します。その結果タグが0件になった場合のみ「システム更新用ダミー」を入れます。</div>
         </section>
 
         <section class="spec-section">
@@ -1178,7 +1179,7 @@
         </section>
 
         <div class="spec-meta">
-          処理仕様バージョン：1.0 ／ 最終更新：2026-09-05<br>
+          処理仕様バージョン：1.1 ／ 最終更新：2026-09-07<br>
           ※このガイドは現在のアプリ実装ロジックに対応しています。処理ロジックを変更した場合は、本ガイドも同時に更新してください。
         </div>
       </div>
@@ -1191,6 +1192,7 @@
     "use strict";
 
     const TARGET_TAG = "採活サポート通信対象者";
+    const DUMMY_TAG = "システム更新用ダミー";
     const SUPPORT_HEADERS = [
       "企業ID", "サスケ番号", "企業名", "都道府県", "市区町村", "町域以下",
       "担当者名", "部署", "役職", "電話", "メール",
@@ -1904,6 +1906,17 @@
         }
       });
 
+      // List Finderでは空白タグをアップロードしても既存値が保持されるため、
+      // 最終的にタグが0件になった行だけ、明示的な上書き用ダミータグを設定する。
+      let dummyTagApplied = 0;
+      finalRows.forEach(row => {
+        const tags = cleanTags(row[idx["(*)個人タグ"]]);
+        if (tags.length === 0) {
+          row[idx["(*)個人タグ"]] = DUMMY_TAG;
+          dummyTagApplied++;
+        }
+      });
+
       const csv = serializeCSV([headers, ...finalRows]);
       const bytes = encodeUtf8Bom(csv);
       const outputName = makeOutputName();
@@ -1912,7 +1925,7 @@
 
       setStep(4, 4);
       setStatus("ETL処理が完了しました。", false);
-      refs.completeText.textContent = `${finalRows.length.toLocaleString("ja-JP")}件を出力しました。除外リスト適用: ${excludedMatches.toLocaleString("ja-JP")}件。`;
+      refs.completeText.textContent = `${finalRows.length.toLocaleString("ja-JP")}件を出力しました。除外リスト適用: ${excludedMatches.toLocaleString("ja-JP")}件。空白タグ補完: ${dummyTagApplied.toLocaleString("ja-JP")}件。`;
       refs.completeBox.classList.add("show");
       triggerDownload(bytes, outputName);
     }
